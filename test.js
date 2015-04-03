@@ -10,7 +10,7 @@ new OneBanana({ name: "Sequence Testing" }).test(
 
         DepA = seq.wrapConstructor(DepA);
         DepB = seq.wrapConstructor(DepB);
-        seq.deepWrapObject(bag);
+        seq.deepWrapAll(bag);
 
         var box = new Box(bag);
         seq.monitor();    // Capture the sequence of dependency calls from the old version.

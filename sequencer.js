@@ -2,8 +2,7 @@ function Sequencer(assertOk) {
     var self = this;
     var seq = 0;
     var checks = [];
-
-    this.onCall = function(name, args) {};
+    var onCall = function(name, args) {};
 
     /**
      * Switch to "monitor" mode. Use this to capture the expected
@@ -11,7 +10,7 @@ function Sequencer(assertOk) {
      */
     this.monitor = function() {
         seq = 0;
-        this.onCall = function(name, args) {
+        onCall = function(name, args) {
             checks[seq] = formatCall(name, args);
             seq++;
         };
@@ -24,7 +23,7 @@ function Sequencer(assertOk) {
      */
     this.verify = function() {
         seq = 0;
-        this.onCall = function(name, args) {
+        onCall = function(name, args) {
             var expected = checks[seq];
             var actual = formatCall(name, args);
             assertOk(expected == actual, "expected: " + expected + ", actual: " + actual);
@@ -38,32 +37,29 @@ function Sequencer(assertOk) {
     this.done = function() {
         assertOk(seq == checks.length, "Must complete entire sequence. Stopped at " + seq + "/" + checks.length);
     };
-    
+
+    /**
+     * Creates a dummy function that monitors calls.
+     */
     this.mock = function(fname) {
         return wrapf(null, function() {}, fname);
     };
 
-    this.wrap = function(o, fname) {
-        var f = o[fname];
-        o[fname] = wrapf(o, f, fname);
-    };
-
+    /**
+     * Create a new constructor that returns instances that monitor
+     * mutations and function calls.
+     */
     this.wrapConstructor = function(c) {
+        // Create new constructor.
         var constructor = function() {
-            self.onCall(c.name, arguments);
+            onCall(c.name, arguments);
             var o = {};
             c.apply(o, arguments);
-            for (var p in o) {
-                if (typeof o[p] == 'function') {
-                    o[p] = wrapf(o, o[p], p);
-                }
-                else {
-                    self.wrapProperty(o, p, c[p]);
-                }
-            }
-
+            self.wrapAll(o);
             return o;
         };
+
+        // Copy 'static' methods/properties to new constructor.
         for (var p in c) {
             if (typeof c[p] == 'function') {
                 console.log("static: " + p);
@@ -73,7 +69,45 @@ function Sequencer(assertOk) {
         return constructor;
     };
 
-    this.wrapProperty = function(o, p, v) {
+    /**
+     * Wraps an object property such that mutations and calls are
+     * monitored.
+     */
+    this.wrap = function(o, p, v) {
+        switch (typeof o[p]) {
+        case 'function':
+            o[p] = wrapf(o, o[p], p);
+            break;
+        default:
+            wrapp(o, p, v);
+            break;
+        }
+    };
+
+    /**
+     * Wrap all properties of the given object.
+     */
+    this.wrapAll = function(o) {
+        for (var p in o) {
+            self.wrap(o, p);
+        }
+        return o;
+    };
+
+    /**
+     * Recursively wrap all properties of the given object.
+     */
+    this.deepWrapAll = function(o) {
+        for (var p in o) {
+            self.wrap(o, p, self.deepWrapAll(o[p]));
+        }
+        return o;            
+    };
+
+    /* Redefines the given object & property such that mutations are
+     * modified.
+     */
+    function wrapp(o, p, v) {
         var onSet = self.mock("set: " + p);
         var value =  v || o[p];
         console.log("wrapping: " + p  + ": " + v);
@@ -81,48 +115,20 @@ function Sequencer(assertOk) {
             set: function(v) { onSet(v); value = v; },
             get: function() { return value; }
         });
-    };
+    }        
 
-    this.wrapObject = function(o) {
-        for (var p in o) {
-            if (typeof o[p] == 'function') {
-                o[p] = wrapf(o, o[p], p);
-            }
-            else {
-                self.wrapProperty(o, p);
-            }
-        }
-        return o;
-    };
-
-    /**
-     * This is only HALF-smart. BEWARE circular object references.
+    /* Returns a wrapped function that monitors calls and parameters.
      */
-    this.deepWrapObject = function(o) {
-        for (var p in o) {
-            if (!p) continue;
-            switch (typeof o[p]) {
-            case 'function':
-                o[p] = wrapf(o, o[p], p);
-                break;
-            case 'undefined':
-                continue;
-                break;
-            default:
-                self.wrapProperty(o, p, self.deepWrapObject(o[p]));
-            }
-        }
-        return o;            
-    };
-        
     function wrapf(o, f, name) {
         name = name || f.name;
         return function() {
-            self.onCall(name, arguments);
+            onCall(name, arguments);
             return f.apply(o, arguments);
         };
     };
 
+    /* Formats a function call for verification.
+     */
     function formatCall(name, args) {
         var msg = "(" + seq +") " + name + "(";
         for (var i = 0; i < args.length; i++) {

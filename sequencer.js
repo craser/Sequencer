@@ -41,8 +41,8 @@ function Sequencer(assertOk) {
     /**
      * Creates a dummy function that monitors calls.
      */
-    this.mock = function(fname) {
-        return wrapf(null, function() {}, fname);
+    this.mock = function(fname, value) {
+        return wrapf(null, function() { return value; }, fname);
     };
 
     /**
@@ -110,7 +110,6 @@ function Sequencer(assertOk) {
     function wrapp(o, p, v) {
         var onSet = self.mock("set: " + p);
         var value =  v || o[p];
-        console.log("wrapping: " + p  + ": " + v);
         Object.defineProperty(o, p, {
             set: function(v) { onSet(v); value = v; },
             get: function() { return value; }

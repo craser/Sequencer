@@ -4,6 +4,11 @@ We've all been there: we're working on a function (or collection of functions) a
 
 **Sequencer** lets you isolate what you're working on, and verify that your **new** implementation, at the very least, calls all deligate methods, external objects & methods, etc, in the same order, with the same parameters, as the **old** implementation.
 
+## Where to Start
+
+  * The "business end" of this is **sequencer.js**. 
+  * **test.js** contains an example of how to **use** sequencer.js
+
 ## Reality Check
 
 This is something I cooked up to help me get my arms around some code I was working on. It is **not** built to be exhaustive or exceptionally robust.

@@ -8,6 +8,7 @@ We've all been there: we're working on a function (or collection of functions) a
 
 This is something I cooked up to help me get my arms around some code I was working on. It is **not** built to be exhaustive or exceptionally robust.
 
+And I've checked in **everything** I used to get this rolling, including **onebanana.js**, from my [OneBanana JavaScript testing framework](https://github.com/craser/OneBanana). This is entirely a quick & dirty solution that I'd like to build out into something more useful later.
 
 ## Drawbacks
 

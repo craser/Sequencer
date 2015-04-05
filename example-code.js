@@ -17,7 +17,15 @@ var DepA = (function() {
 
 function DepB() {
     this.p = function() {};
-    this.q = function() {};
+    this.q = function(n) {
+        n = n || 0;
+        if (n < 4) {
+            this.q(n + 1);
+        }
+        else {
+            this.p("q");
+        }
+    };
 }
 
 function Box(bag) {
@@ -27,7 +35,7 @@ function Box(bag) {
         var bim = a.bim("a.bim");
         if (bim) {
             var b = new DepB("new DepB:" + x);
-            b.q("b.q" + x);
+            b.q();
         }
         bag.kick("bag.kick:" + x);
         bag.pocket.pick("bag.pocket.pick:" + x);
@@ -56,7 +64,7 @@ function ReplacementBox(bag) {
         var b = null;
         if (bim) {
             b = new DepB("new DepB:" + x);
-            b.q("b.q" + x);
+            b.q();
         }
     }
 }

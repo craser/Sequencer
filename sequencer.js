@@ -31,6 +31,7 @@ function Sequencer(assertOk) {
             seq++;
         }
     }
+
     /**
      * Dumps a record of all the calls captured during monitor.
      */

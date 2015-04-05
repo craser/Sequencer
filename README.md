@@ -1,4 +1,4 @@
-# Sequencer: Rinky-Dink Refactoring Aid
+# Sequencer: Rinky-Dink JavaScript Refactoring Tool
 
 We've all been there: we're working on a function (or collection of functions) are are a rat's nest of if/else & switch statements, repeated calls, side effects, and obscure dependencies. There are no unit tests, the original requirements have been lost in the mists of time, and it's unclear whether the code behaves correctly to begin with.
 

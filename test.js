@@ -28,6 +28,8 @@ new OneBanana({ name: "Sequence Testing" }).test(
         box.foo("true");
         box.foo("way");
 
+        seq.dump();
+
         DepA.reset();
         box = new ReplacementBox(bag);
         seq.verify(); // Verify that the new implementation matches the old.

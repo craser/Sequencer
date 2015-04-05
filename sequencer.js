@@ -1,6 +1,7 @@
 function Sequencer(assertOk) {
     var self = this;
     var seq = 0;
+    var depth = 0;
     var checks = [];
     var onCall = function(name, args) {};
 
@@ -11,7 +12,7 @@ function Sequencer(assertOk) {
     this.monitor = function() {
         seq = 0;
         onCall = function(name, args) {
-            checks[seq] = formatCall(name, args);
+            checks[seq] = formatCall(name, args, depth);
             seq++;
         };
     };
@@ -23,13 +24,26 @@ function Sequencer(assertOk) {
      */
     this.verify = function() {
         seq = 0;
-        onCall = function(name, args) {
+        onCall = function(name, args, depth) {
             var expected = checks[seq];
-            var actual = formatCall(name, args);
-            assertOk(expected == actual, "expected: " + expected + ", actual: " + actual);
+            var actual = formatCall(name, args, depth);
+            assertOk(expected.equals(actual), "expected: " + expected + ", actual: " + actual);
             seq++;
         }
     }
+    /**
+     * Dumps a record of all the calls captured during monitor.
+     */
+    this.dump = function() {
+        checks.map(function(check) {
+            var line = "(" + check.seq + ") "
+            for (var i = 0; i < check.depth; i++) {
+                line += "    ";
+            }
+            line += check.name + "(" + check.args.join(",") + ")"
+            console.log(line);
+        });        
+    };
 
     /**
      * Confirms that we got through the entire sequence.
@@ -53,16 +67,17 @@ function Sequencer(assertOk) {
         // Create new constructor.
         var constructor = function() {
             onCall(c.name, arguments);
+            depth++
             var o = {};
             c.apply(o, arguments);
             self.wrapAll(o);
+            depth--;
             return o;
         };
 
         // Copy 'static' methods/properties to new constructor.
         for (var p in c) {
             if (typeof c[p] == 'function') {
-                console.log("static: " + p);
                 constructor[p] = wrapf(c, c[p], p);
             }
         }
@@ -122,18 +137,30 @@ function Sequencer(assertOk) {
         name = name || f.name;
         return function() {
             onCall(name, arguments);
-            return f.apply(o, arguments);
+            depth++;
+            var v = f.apply(o, arguments);
+            depth--;
+            return v;
         };
     };
 
-    /* Formats a function call for verification.
+    /* Formats a function call or data mutation for verification.
      */
-    function formatCall(name, args) {
-        var msg = "(" + seq +") " + name + "(";
-        for (var i = 0; i < args.length; i++) {
-            msg += args[i];
-        }
-        msg += ")";
-        return msg;
+    function formatCall(name, args, depth) {
+        args = Array.prototype.slice.call(args); // Convert to array.
+        depth = depth || 0;
+        return {
+            seq: seq,
+            depth: depth,
+            name: name,
+            args: args.map(function(arg) { return "" + arg; }),
+            toString: function() {
+                var msg = "(" + this.seq +") " + this.name + "(" + this.args.join(",") + ")";
+                return msg;
+            },
+            equals: function(call) {
+                return call.toString() == this.toString();
+            }
+        };            
     }        
 }

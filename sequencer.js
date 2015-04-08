@@ -103,9 +103,14 @@ function Sequencer(assertOk) {
     /**
      * Wrap all properties of the given object.
      */
-    this.wrapAll = function(o) {
+    this.wrapAll = function() {
+        var args = Array.prototype.slice.call(arguments);
+        var o = args.shift();
+        var exceptions = args;
         for (var p in o) {
-            self.wrap(o, p);
+            if (exceptions.indexOf(p) == -1) {
+                self.wrap(o, p);
+            }
         }
         return o;
     };

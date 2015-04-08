@@ -49,6 +49,19 @@ new OneBanana({ name: "Sequence Testing" }).test(
 
         DepA.reset();
         seq.done();
-    }
+    },
+    function getExceptions(test) {
+        var seq = new Sequencer(test.ok);
+        var box = {
+            a: function() { this.b(); },
+            b: function() { this.c(); },
+            c: function() {}
+        };
+        seq.monitor();
+        seq.wrapAll(box, "b");
+        box.a();
+        seq.dump();
+        test.ok(true, "Everything's fine. Really.");
+    }    
 );
 

@@ -1,9 +1,14 @@
-function Sequencer(assertOk) {
+function Sequencer(assertOk, log) {
+    log = log || function() { console.log.apply(console, arguments); };
     var self = this;
     var seq = 0;
     var depth = 0;
     var checks = [];
     var onCall = function(name, args) {};
+
+    this.getChecks = function() {
+        return checks;
+    };
 
     /**
      * Switch to "monitor" mode. Use this to capture the expected
@@ -42,7 +47,7 @@ function Sequencer(assertOk) {
                 line += "    ";
             }
             line += check.name + "(" + check.args.join(",") + ")"
-            console.log(line);
+            log(line);
         });        
     };
 

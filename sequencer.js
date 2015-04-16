@@ -1,25 +1,21 @@
 function Sequencer(assertOk, log) {
     log = log || function() { console.log.apply(console, arguments); };
     var self = this;
-    var seq = 0;
+    var sequence = [];
     var depth = 0;
-    var checks = [];
     var onCall = function(name, args) {};
-
-    this.getChecks = function() {
-        return checks;
-    };
 
     /**
      * Switch to "monitor" mode. Use this to capture the expected
      * sequence in the OLD implementation.
      */
-    this.monitor = function() {
-        seq = 0;
+    this.monitor = function(f) {
+        sequence = [];
         onCall = function(name, args) {
-            checks[seq] = formatCall(name, args, depth);
-            seq++;
+            sequence.push(formatCall(name, args, depth));
         };
+        f();
+        onCall = function() {};
     };
 
     /**
@@ -27,35 +23,27 @@ function Sequencer(assertOk, log) {
      * implementation calls dependencies in the same order, and with
      * the same arguments, as the old implementation.
      */
-    this.verify = function() {
-        seq = 0;
+    this.verify = function(f) {
         onCall = function(name, args, depth) {
-            var expected = checks[seq];
+            var expected = sequence.shift();
             var actual = formatCall(name, args, depth);
             assertOk(expected.equals(actual), "expected: " + expected + ", actual: " + actual);
-            seq++;
         }
+        f();
+        assertOk(sequence.length == 0, "Must complete entire sequence. First uncalled: " + sequence[0]);
+        onCall = function() {};
     }
 
     /**
-     * Dumps a record of all the calls captured during monitor.
+     * Dumps a record of all the calls captured during monitor. Note
+     * that this will 
      */
     this.dump = function() {
-        checks.map(function(check) {
-            var line = "(" + check.seq + ") "
-            for (var i = 0; i < check.depth; i++) {
-                line += "    ";
-            }
+        sequence.map(function(check) {
+            var line = new Array(check.depth + 1).join("    ");
             line += check.name + "(" + check.args.join(",") + ")"
             log(line);
         });        
-    };
-
-    /**
-     * Confirms that we got through the entire sequence.
-     */
-    this.done = function() {
-        assertOk(seq == checks.length, "Must complete entire sequence. Stopped at " + seq + "/" + checks.length);
     };
 
     /**
@@ -130,6 +118,14 @@ function Sequencer(assertOk, log) {
         return o;            
     };
 
+    /**
+     * NOT INTENDED FOR USE BY CLIENT CODE.
+     * Expose the sequence for testing. 
+     */
+    this.getSequence = function() {
+        return sequence;
+    };
+
     /* Redefines the given object & property such that mutations are
      * modified.
      */
@@ -161,12 +157,11 @@ function Sequencer(assertOk, log) {
         args = Array.prototype.slice.call(args); // Convert to array.
         depth = depth || 0;
         return {
-            seq: seq,
             depth: depth,
             name: name,
             args: args.map(function(arg) { return "" + arg; }),
             toString: function() {
-                var msg = "(" + this.seq +") " + this.name + "(" + this.args.join(",") + ")";
+                var msg = this.name + "(" + this.args.join(",") + ")";
                 return msg;
             },
             equals: function(call) {

@@ -163,13 +163,6 @@ function Sequencer(assertOk, log) {
      * modified.
      */
     function wrapp(o, p, v) {
-        var onSet = self.mock("set: " + p);
-        var value =  v || o[p];
-        Object.defineProperty(o, p, {
-            set: function(v) { onSet(v); value = v; },
-            get: function() { return value; }
-        });
-
         properties.push({
             name: p,
             get: function() { return o[p]; }

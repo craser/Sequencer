@@ -20,7 +20,47 @@ new OneBanana({ name: "Testing Sequencer" }).test(
         var check = checks[0];
         test.ok(check.name == "mock_function", "Name should be mock_function. (Found: " + check.name + ")");
         test.ok(check.args.join(",") == "1,2,3", "Args should be (1,2,3). (Found: " + check.args.join(",") + ")");
-    }    
+    },
+    function test_postConditions(test) {
+        var passed = true;
+        seq = new Sequencer(function(ok, msg) {
+            passed = passed && ok;
+            // console.log(ok + ": " + msg);
+        });
+        var box = {
+            value: 0,
+            set: function(x) { this.value = x; },
+            get: function() { return this.value; }
+        };
+        seq.wrap(box, "value");
+
+        box.set(0);
+        seq.monitor(function() {
+            box.set(1);
+            box.set(2);
+            box.set(3);
+            box.set(23);
+        });
+        box.set(0);
+        seq.verify(function() {
+            box.set(23);
+        });
+        test.ok(passed, "passed should be true.");
+
+        passed = true;
+        box.set(0);
+        seq.monitor(function() {
+            box.set(1);
+        });
+        box.set(0);
+        box.set = function(x) { this.value += x; };
+        seq.verify(function() {
+            box.set(1);
+            box.set(2);
+            box.set(3);
+        });
+        test.ok(!passed, "passed should be false.");
+    }
 );
 
 phantom.exit();

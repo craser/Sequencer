@@ -93,7 +93,7 @@ function Sequencer(assertOk, log) {
     this.wrapConstructor = function(c) {
         // Create new constructor.
         var constructor = function() {
-            onCall(c, c.name, arguments);
+            onCall(c.name, arguments);
             depth++
             var o = {};
             c.apply(o, arguments);

@@ -1,7 +1,3 @@
-var fs = require('fs');
-eval(fs.read("onebanana.js"));
-eval(fs.read("sequencer.js"));
-
 new OneBanana({ name: "Testing Sequencer" }).test(
     function test_mock(test) {
         var seq = new Sequencer(function() {});
@@ -60,7 +56,38 @@ new OneBanana({ name: "Testing Sequencer" }).test(
             box.set(3);
         });
         test.ok(!passed, "passed should be false.");
+    },
+    function test_captureCall(test) {
+        var passed = true;
+        var ok = function(x) { passed = passed && x; };
+        var box = {
+            set: function(x) {}
+        };
+
+        var seq = new Sequencer(ok);
+        seq.wrap(box, "set");
+
+        // Call the same method twice. Should pass.
+        passed = true;
+        seq.monitor(function() {
+            box.set(5);
+        });
+        seq.verify(function() {
+            box.set(5);
+        });
+        test.ok(passed, "Should be fine with the same method called twice.");
+
+        // Call a DIFFERENT method the second time. Should be fine..
+        passed = true;
+        seq.monitor(function() {
+            box.set(5);
+        });
+        box.set = seq.mock("set");
+        seq.verify(function() {
+            debugger;
+            box.set(5);
+        });
+        // Allows for subbing out different methods during refactoring.
+        test.ok(passed, "Should be fine with same name & args, even for different methods.");
     }
 );
-
-phantom.exit();

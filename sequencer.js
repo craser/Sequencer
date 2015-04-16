@@ -14,7 +14,7 @@ function Sequencer(assertOk, log) {
     this.monitor = function(f) {
         sequence = [];
         onCall = function(name, args) {
-            sequence.push(formatCall(name, args, depth));
+            sequence.push(captureCall(name, args, depth));
         };
         f();
         onCall = function() {};
@@ -55,7 +55,7 @@ function Sequencer(assertOk, log) {
     this.verify = function(f) {
         onCall = function(name, args, depth) {
             var expected = sequence.shift();
-            var actual = formatCall(name, args, depth);
+            var actual = captureCall(name, args, depth);
             assertOk(expected.equals(actual), "expected: " + expected + ", actual: " + actual);
         }
         f();
@@ -93,7 +93,7 @@ function Sequencer(assertOk, log) {
     this.wrapConstructor = function(c) {
         // Create new constructor.
         var constructor = function() {
-            onCall(c.name, arguments);
+            onCall(c, c.name, arguments);
             depth++
             var o = {};
             c.apply(o, arguments);
@@ -184,7 +184,7 @@ function Sequencer(assertOk, log) {
 
     /* Formats a function call or data mutation for verification.
      */
-    function formatCall(name, args, depth) {
+    function captureCall(name, args, depth) {
         args = Array.prototype.slice.call(args); // Convert to array.
         depth = depth || 0;
         return {
@@ -196,7 +196,7 @@ function Sequencer(assertOk, log) {
                 return msg;
             },
             equals: function(call) {
-                return call.toString() == this.toString();
+                return this.toString() == call.toString();
             }
         };            
     }        

@@ -2,6 +2,8 @@ function Sequencer(assertOk, log) {
     log = log || function() { console.log.apply(console, arguments); };
     var self = this;
     var sequence = [];
+    var properties = [];     // { name: "", get: f() }
+    var postConditions = []; // { name: "", check: f() }
     var depth = 0;
     var onCall = function(name, args) {};
 
@@ -16,7 +18,34 @@ function Sequencer(assertOk, log) {
         };
         f();
         onCall = function() {};
+        capturePostConditions();
     };
+
+    function verifyPostConditions() {
+        postConditions.map(function(condition) {
+            condition.check();
+        });
+    };
+
+    function capturePostConditions() {
+        properties.map(function(prop) {
+            var expected = prop.get();
+            postConditions.push({
+                name: prop.name,
+                check: function() {
+                    var actual = prop.get();
+                    var msg = "Post condition: " + prop.name + ". Expected: " + expected + " Actual: " + actual;
+                    if (expected && expected.equals) {
+                        assertOk(expected.equals(actual), msg);
+                    }
+                    else {
+                        assertOk(expected == actual, msg);
+                    }
+                }
+            })
+        });
+    }
+
 
     /**
      * Switch to "verify" mode. Use this to verify that the new
@@ -30,7 +59,11 @@ function Sequencer(assertOk, log) {
             assertOk(expected.equals(actual), "expected: " + expected + ", actual: " + actual);
         }
         f();
-        assertOk(sequence.length == 0, "Must complete entire sequence. First uncalled: " + sequence[0]);
+        assertOk(sequence.length == 0, "Must complete entire sequence.");
+        if (sequence.length > 0) {
+            assertOk(false, "First uncalled: " + sequence[0]);
+        }
+        verifyPostConditions();
         onCall = function() {};
     }
 
@@ -135,6 +168,11 @@ function Sequencer(assertOk, log) {
         Object.defineProperty(o, p, {
             set: function(v) { onSet(v); value = v; },
             get: function() { return value; }
+        });
+
+        properties.push({
+            name: p,
+            get: function() { return o[p]; }
         });
     }        
 

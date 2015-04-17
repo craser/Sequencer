@@ -21,32 +21,6 @@ function Sequencer(assertOk, log) {
         capturePostConditions();
     };
 
-    function verifyPostConditions() {
-        postConditions.map(function(condition) {
-            condition.check();
-        });
-    };
-
-    function capturePostConditions() {
-        properties.map(function(prop) {
-            var expected = prop.get();
-            postConditions.push({
-                name: prop.name,
-                check: function() {
-                    var actual = prop.get();
-                    var msg = "Post condition: " + prop.name + ". Expected: " + expected + " Actual: " + actual;
-                    if (expected && expected.equals) {
-                        assertOk(expected.equals(actual), msg);
-                    }
-                    else {
-                        assertOk(expected == actual, msg);
-                    }
-                }
-            })
-        });
-    }
-
-
     /**
      * Switch to "verify" mode. Use this to verify that the new
      * implementation calls dependencies in the same order, and with
@@ -66,6 +40,18 @@ function Sequencer(assertOk, log) {
         verifyPostConditions();
         onCall = function() {};
     }
+
+    /**
+     * Identical to verify(), but only checks post conditions, NOT the
+     * sequence of calls executed by the given code. This lets
+     * implementation and order of execution vary while achieving the
+     * same results.
+     */
+    this.verifyPostConditions = function(f) {
+        onCall = function() {}; // We don't care about capturing the sequence.
+        f();                    // Just execute the code
+        verifyPostConditions(); // And verify post conditions.
+    };
 
     /**
      * Dumps a record of all the calls captured during monitor. Note
@@ -152,13 +138,36 @@ function Sequencer(assertOk, log) {
     };
 
     /**
-     * NOT INTENDED FOR USE BY CLIENT CODE.
-     * Expose the sequence for testing. 
+     * Calls "check()" method on all the accumulated postConditions.
      */
-    this.getSequence = function() {
-        return sequence;
+    function verifyPostConditions() {
+        postConditions.map(function(condition) {
+            condition.check();
+        });
     };
 
+    /* Iterates over all the monitored properties and records their
+     * values for later cross-checking. (See verifyPostConditions.)
+     */
+    function capturePostConditions() {
+        properties.map(function(prop) {
+            var expected = prop.get();
+            postConditions.push({
+                name: prop.name,
+                check: function() {
+                    var actual = prop.get();
+                    var msg = "Post condition: " + prop.name + ". Expected: " + expected + " Actual: " + actual;
+                    if (expected && expected.equals) {
+                        assertOk(expected.equals(actual), msg);
+                    }
+                    else {
+                        assertOk(expected == actual, msg);
+                    }
+                }
+            })
+        });
+    };
+    
     /* Redefines the given object & property such that mutations are
      * modified.
      */
